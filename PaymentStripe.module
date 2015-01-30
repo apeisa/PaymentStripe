@@ -1,0 +1,116 @@
+<?php
+
+require_once($this->config->paths->siteModules . '/Payment/Payment.php');
+require_once($this->config->paths->siteModules . '/PaymentStripe/Stripe.php');
+
+class PaymentStripe extends PaymentModule implements Module, ConfigurableModule, PaymentModuleEmbed {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'PaymentStripe', 
+			'version' => 001, 
+			'summary' => 'PaymentStripe',
+			'singular' => false,
+			'autoload' => false, 
+			);
+	}
+		
+	public function init() {
+		$this->currenct = $this->defaultCurrency;
+	}
+
+  public function getTitle() {
+    return $this->_("Credit Card (Stripe)");
+  }
+
+	public function processPayment() {
+		// Set your secret key: remember to change this to your live secret key in production
+		// See your keys here https://dashboard.stripe.com/account
+		Stripe::setApiKey($this->secretKey);
+
+		// Get the credit card details submitted by the form
+		$token = $this->input->post->stripeToken;
+
+		// Create the charge on Stripe's servers - this will charge the user's card
+		try {
+		$charge = Stripe_Charge::create(array(
+		  "amount" => $this->amount, // amount in cents, again
+		  "currency" => $this->currency,
+		  "card" => $token,
+		  "description" => $this->customerEmail)
+		);
+		} catch(Stripe_CardError $e) {
+			$this->setFailureReason($e->getMessage());
+		  return false;
+		}
+		return true;
+	}
+
+	public function embed() {
+
+		if ($this->amount <= 0) throw new WireException("amount is not set");
+		if ($this->processUrl == '') throw new WireException("processUrl is not set");
+
+		$out = '
+		<form action="'. $this->processUrl .'" method="POST">
+	  <script
+	    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+	    data-key="'. $this->publicKey .'"
+	    data-amount="'. $this->amount . '"
+	    data-name="'. $this->seller .'"
+	    data-currency="'. $this->currency .'"
+	    data-description="'. $this->description .'"
+	    data-panel-label="'. $this->_("Pay") .' {{amount}}"
+	    data-label="'. $this->_("Pay with Card") .'"
+	    ';
+
+	  if ($this->imageUrl) $out .= 'data-image="'. $this->imageUrl .'"';
+	  if ($this->customerEmail) $out .= 'data-email="'. $this->customerEmail .'"';
+
+	  $out .= '>
+	  </script>
+	  </form>';
+		return $out;
+	}
+
+	public static function getModuleConfigInputfields(array $data) {
+		$inputfields = new InputfieldWrapper();
+
+    $field = wire('modules')->get('InputfieldText');
+    $field->name = 'seller';
+    $field->label = __("Seller name");
+    $field->notes = __("Company or seller of the goods - this is shown on stripe payment form");
+    if(isset($data['seller'])) $field->value = $data['seller'];
+    $inputfields->add($field);
+
+    $field = wire('modules')->get('InputfieldText');
+    $field->name = 'defaultCurrency';
+    $field->label = __("Default currency");
+    $field->notes = __("Use this currency by default (always possible to overwrite when using this module from API)");
+    if(isset($data['defaultCurrency'])) $field->value = $data['defaultCurrency'];
+    $inputfields->add($field);
+
+    $field = wire('modules')->get('InputfieldText');
+    $field->name = 'secretKey';
+    $field->label = __("Secret key");
+    $field->notes = __("Your secret key: remember to change this to your live secret key in production. See your keys [here](https://dashboard.stripe.com/account)");
+    if(isset($data['secretKey'])) $field->value = $data['secretKey'];
+    $inputfields->add($field);
+
+    $field = wire('modules')->get('InputfieldText');
+    $field->name = 'publicKey';
+    $field->label = __("Public key");
+    $field->notes = __("Your public key: remember to change this to your live public key in production. See your keys [here](https://dashboard.stripe.com/account)");
+    if(isset($data['publicKey'])) $field->value = $data['publicKey'];
+    $inputfields->add($field);
+
+    $field = wire('modules')->get('InputfieldText');
+    $field->name = 'imageUrl';
+    $field->label = __("Url to logo");
+    $field->notes = __("Company logo or other image to show in Stripe payment form. Relative url from root, like /site/templates/images/logo.gif");
+    if(isset($data['imageUrl'])) $field->value = $data['imageUrl'];
+    $inputfields->add($field);
+
+		return $inputfields;
+	}
+}
