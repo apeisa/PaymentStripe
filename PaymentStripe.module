@@ -1,9 +1,9 @@
 <?php
 
-require_once($this->config->paths->siteModules . '/Payment/Payment.php');
+require_once($this->config->paths->siteModules . '/PaymentModule/PaymentModule.php');
 require_once($this->config->paths->siteModules . '/PaymentStripe/Stripe.php');
 
-class PaymentStripe extends PaymentModule implements Module, ConfigurableModule, PaymentModuleEmbed {
+class PaymentStripe extends PaymentModule implements PaymentModuleEmbed {
 
 	public static function getModuleInfo() {
 		return array(
