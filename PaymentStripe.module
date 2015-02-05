@@ -1,7 +1,6 @@
 <?php
 
-require_once($this->config->paths->siteModules . '/PaymentModule/PaymentModule.php');
-require_once($this->config->paths->siteModules . '/PaymentStripe/Stripe.php');
+require_once(__DIR__ . DIRECTORY_SEPARATOR . 'Stripe.php');
 
 class PaymentStripe extends PaymentModule implements PaymentModuleEmbed {
 
@@ -11,7 +10,7 @@ class PaymentStripe extends PaymentModule implements PaymentModuleEmbed {
 			'version' => 001, 
 			'summary' => 'PaymentStripe',
 			'singular' => false,
-			'autoload' => false, 
+			'requires' => 'PaymentModule', 
 			);
 	}
 		
@@ -37,7 +36,7 @@ class PaymentStripe extends PaymentModule implements PaymentModuleEmbed {
 		  "amount" => $this->amount, // amount in cents, again
 		  "currency" => $this->currency,
 		  "card" => $token,
-		  "description" => $this->customerEmail)
+		  "description" => $this->customer->email)
 		);
 		} catch(Stripe_CardError $e) {
 			$this->setFailureReason($e->getMessage());
@@ -48,24 +47,24 @@ class PaymentStripe extends PaymentModule implements PaymentModuleEmbed {
 
 	public function embed() {
 
-		if ($this->amount <= 0) throw new WireException("amount is not set");
+		if ($this->getTotalAmount() <= 0) throw new WireException("Products are not set");
 		if ($this->processUrl == '') throw new WireException("processUrl is not set");
+
 
 		$out = '
 		<form action="'. $this->processUrl .'" method="POST">
 	  <script
 	    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
 	    data-key="'. $this->publicKey .'"
-	    data-amount="'. $this->amount . '"
+	    data-amount="'. $this->getTotalAmount() . '"
 	    data-name="'. $this->seller .'"
 	    data-currency="'. $this->currency .'"
-	    data-description="'. $this->description .'"
 	    data-panel-label="'. $this->_("Pay") .' {{amount}}"
 	    data-label="'. $this->_("Pay with Card") .'"
 	    ';
 
 	  if ($this->imageUrl) $out .= 'data-image="'. $this->imageUrl .'"';
-	  if ($this->customerEmail) $out .= 'data-email="'. $this->customerEmail .'"';
+	  if ($this->customer->email) $out .= 'data-email="'. $this->customer->email .'"';
 
 	  $out .= '>
 	  </script>
