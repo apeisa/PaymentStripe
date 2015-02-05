@@ -10,9 +10,15 @@ Payment abstract class from https://github.com/apeisa/Payment should be found fr
 
 // Load the module and setup payment
 $payment = $modules->get("PaymentStripe");
-$payment->setAmount(1000); // Amount always set in cents
 $payment->setCurrency("EUR");
-$payment->setDescription("Just a test payment");
+$payment->setId(123456789);
+
+$customer = Array();
+$customer['email'] = "antti.peisa@gmail.com";
+$payment->setCustomerData($customer);
+
+$amount = 1000; // Amount in payment modules always in cents
+$payment->addProduct("My product", $amount);
 
 // In this example we are going to do all in same page
 $url = $page->httpUrl;
