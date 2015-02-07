@@ -33,7 +33,7 @@ class PaymentStripe extends PaymentModule {
 		// Create the charge on Stripe's servers - this will charge the user's card
 		try {
 		$charge = Stripe_Charge::create(array(
-		  "amount" => $this->amount, // amount in cents, again
+		  "amount" => $this->getTotalAmount(), // amount in cents, again
 		  "currency" => $this->currency,
 		  "card" => $token,
 		  "description" => $this->customer->email)
