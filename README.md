@@ -2,7 +2,7 @@
 Stripe payment module for ProcessWire
 
 ## Requirements
-Payment abstract class from https://github.com/apeisa/Payment should be found from /site/modules/Payment/Payment.php
+Requires PaymentModule -module.
 
 ## Example
 
