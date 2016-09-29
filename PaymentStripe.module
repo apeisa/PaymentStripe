@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 require_once(__DIR__ . DIRECTORY_SEPARATOR . 'Stripe.php');
 
