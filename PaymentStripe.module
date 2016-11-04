@@ -25,14 +25,14 @@ class PaymentStripe extends PaymentModule {
 	public function processPayment() {
 		// Set your secret key: remember to change this to your live secret key in production
 		// See your keys here https://dashboard.stripe.com/account
-		Stripe::setApiKey($this->secretKey);
+		\Stripe::setApiKey($this->secretKey);
 
 		// Get the credit card details submitted by the form
 		$token = $this->input->post->stripeToken;
 
 		// Create the charge on Stripe's servers - this will charge the user's card
 		try {
-		$charge = Stripe_Charge::create(array(
+		$charge = \Stripe_Charge::create(array(
 		  "amount" => $this->getTotalAmount(), // amount in cents, again
 		  "currency" => $this->currency,
 		  "card" => $token,
