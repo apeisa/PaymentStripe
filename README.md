@@ -44,7 +44,7 @@ switch ($input->get->step) {
 		break;
 	
 	default:
-		echo $payment->embed(); // Here you could look if instance is PaymentEmbed or PaymentRedirect and choose method based on that
+		echo $payment->render(); // Here you could look if instance is PaymentEmbed or PaymentRedirect and choose method based on that
 		break;
 }
 ```
