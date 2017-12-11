@@ -17,8 +17,9 @@ $customer = Array();
 $customer['email'] = "antti.peisa@gmail.com";
 $payment->setCustomerData($customer);
 
+$quantity = 1; // number of items of this kind
 $amount = 1000; // Amount in payment modules always in cents
-$payment->addProduct("My product", $amount);
+$payment->addProduct("My product", $amount, $quantity);
 
 // In this example we are going to do all in same page
 $url = $page->httpUrl;
