@@ -6,14 +6,14 @@ class PaymentStripe extends PaymentModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'PaymentStripe', 
-			'version' => 001, 
+			'title' => 'PaymentStripe',
+			'version' => 001,
 			'summary' => 'PaymentStripe',
 			'singular' => false,
-			'requires' => 'PaymentModule', 
+			'requires' => 'PaymentModule',
 			);
 	}
-		
+
 	public function init() {
 		$this->currenct = $this->defaultCurrency;
 	}
@@ -32,17 +32,17 @@ class PaymentStripe extends PaymentModule {
 
 		// Create the charge on Stripe's servers - this will charge the user's card
 		try {
-		$charge = Stripe_Charge::create(array(
-		  "amount" => $this->getTotalAmount(), // amount in cents, again
-		  "currency" => $this->currency,
-		  "card" => $token,
-		  "description" => $this->customer->email)
-		);
+			$charge = Stripe_Charge::create(array(
+			  "amount" => $this->getTotalAmount(), // amount in cents, again
+			  "currency" => $this->currency,
+			  "card" => $token,
+			  "description" => $this->customer->email)
+			);
 		} catch(Stripe_CardError $e) {
 			$this->setFailureReason($e->getMessage());
 		  return false;
 		}
-		return true;
+		return $chargee;
 	}
 
 	public function render() {
