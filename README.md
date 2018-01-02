@@ -29,8 +29,11 @@ $payment->setCancelUrl($url . "?step=cancel");
 
 switch ($input->get->step) {
 	case 'process':
-		if ($payment->processPayment()) {
+		$charge = $payment->processPayment();
+		if ($charge) {
 			echo "Thanks, payment successful!";
+			// access and echo Stripe charge response
+			echo $charge->id;
 		} else {
 			echo "Are you kidding me?";
 		}
@@ -43,7 +46,7 @@ switch ($input->get->step) {
 	case 'cancel':
 		echo "I think you cancelled?";
 		break;
-	
+
 	default:
 		echo $payment->render(); // Here you could look if instance is PaymentEmbed or PaymentRedirect and choose method based on that
 		break;
