@@ -42,7 +42,7 @@ class PaymentStripe extends PaymentModule {
 			$this->setFailureReason($e->getMessage());
 		  return false;
 		}
-		return $chargee;
+		return $charge;
 	}
 
 	public function render() {
