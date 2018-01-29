@@ -47,7 +47,8 @@ class PaymentStripe extends PaymentModule {
 				"card" => $token,
 				"capture" => $capture,
 				"metadata" => $metadataObj,
-				"description" => $this->customer->email)
+				"description" => $this->customer->email,
+				"receipt_email" => $this->customer->email)
 			);
 		} catch(Stripe_CardError $e) {
 			$this->setFailureReason($e->getMessage());
