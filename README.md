@@ -17,8 +17,9 @@ $customer = Array();
 $customer['email'] = "antti.peisa@gmail.com";
 $payment->setCustomerData($customer);
 
+$quantity = 1; // number of items of this kind
 $amount = 1000; // Amount in payment modules always in cents
-$payment->addProduct("My product", $amount);
+$payment->addProduct("My product", $amount, $quantity);
 
 // In this example we are going to do all in same page
 $url = $page->httpUrl;
@@ -28,8 +29,11 @@ $payment->setCancelUrl($url . "?step=cancel");
 
 switch ($input->get->step) {
 	case 'process':
-		if ($payment->processPayment()) {
+		$charge = $payment->processPayment();
+		if ($charge) {
 			echo "Thanks, payment successful!";
+			// access and echo Stripe charge response
+			echo $charge->id;
 		} else {
 			echo "Are you kidding me?";
 		}
@@ -42,9 +46,9 @@ switch ($input->get->step) {
 	case 'cancel':
 		echo "I think you cancelled?";
 		break;
-	
+
 	default:
-		echo $payment->embed(); // Here you could look if instance is PaymentEmbed or PaymentRedirect and choose method based on that
+		echo $payment->render(); // Here you could look if instance is PaymentEmbed or PaymentRedirect and choose method based on that
 		break;
 }
 ```

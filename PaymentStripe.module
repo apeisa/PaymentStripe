@@ -6,45 +6,74 @@ class PaymentStripe extends PaymentModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'PaymentStripe', 
-			'version' => 001, 
+			'title' => 'PaymentStripe',
+			'version' => 002,
 			'summary' => 'PaymentStripe',
 			'singular' => false,
-			'requires' => 'PaymentModule', 
+			'requires' => 'PaymentModule',
 			);
 	}
-		
+
 	public function init() {
 		$this->currenct = $this->defaultCurrency;
 	}
 
-  public function getTitle() {
-    return $this->_("Credit Card (Stripe)");
-  }
+  	public function getTitle() {
+    	return $this->_("Credit Card (Stripe)");
+  	}
 
-	public function processPayment() {
+	public function processPayment($metadataObj) {
+
 		// Set your secret key: remember to change this to your live secret key in production
 		// See your keys here https://dashboard.stripe.com/account
 		Stripe::setApiKey($this->secretKey);
 
 		// Get the credit card details submitted by the form
-		$token = $this->input->post->stripeToken;
+		if($this->input->post->stripeToken){
+			$token = $this->input->post->stripeToken;
+		}else{
+			// something went wrong, no token provided
+			return false;
+		}
+
+		// if checked then don't capture payment straight away
+		$capture = $this->captureCheckbox == 1 ? false : true;
 
 		// Create the charge on Stripe's servers - this will charge the user's card
 		try {
-		$charge = Stripe_Charge::create(array(
-		  "amount" => $this->getTotalAmount(), // amount in cents, again
-		  "currency" => $this->currency,
-		  "card" => $token,
-		  "description" => $this->customer->email)
-		);
+			$charge = Stripe_Charge::create(array(
+				"amount" => $this->getTotalAmount(), // amount in cents, again
+				"currency" => $this->currency,
+				"card" => $token,
+				"capture" => $capture,
+				"metadata" => $metadataObj,
+				"description" => $this->customer->email,
+				"receipt_email" => $this->customer->email)
+			);
 		} catch(Stripe_CardError $e) {
 			$this->setFailureReason($e->getMessage());
-		  return false;
+			return false;
 		}
-		return true;
+
+		// return $charge details
+		return $charge;
 	}
 
+	// capture previous charge
+	public function capturePayment($id) {
+
+		// Set your secret key: remember to change this to your live secret key in production
+		// See your keys here https://dashboard.stripe.com/account
+		Stripe::setApiKey($this->secretKey);
+
+		$charge = Stripe_Charge::retrieve($id);
+		$charge->capture();
+
+		// return $charge details
+		return $charge;
+	}
+
+	// render Stripe form
 	public function render() {
 
 		if ($this->getTotalAmount() <= 0) throw new WireException("Products are not set");
@@ -53,62 +82,71 @@ class PaymentStripe extends PaymentModule {
 
 		$out = '
 		<form action="'. $this->processUrl .'" method="POST">
-	  <script
-	    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
-	    data-key="'. $this->publicKey .'"
-	    data-amount="'. $this->getTotalAmount() . '"
-	    data-name="'. $this->seller .'"
-	    data-currency="'. $this->currency .'"
-	    data-panel-label="'. $this->_("Pay") .' {{amount}}"
-	    data-label="'. $this->_("Pay with Card") .'"
-	    ';
+		  <script
+		    src="https://checkout.stripe.com/checkout.js" class="stripe-button"
+		    data-key="'. $this->publicKey .'"
+		    data-amount="'. $this->getTotalAmount() . '"
+		    data-name="'. $this->seller .'"
+		    data-currency="'. $this->currency .'"
+		    data-panel-label="'. $this->_("Pay") .' {{amount}}"
+		    data-label="'. $this->_("Pay with Card") .'"
+		    ';
 
-	  if ($this->imageUrl) $out .= 'data-image="'. $this->imageUrl .'"';
-	  if ($this->customer->email) $out .= 'data-email="'. $this->customer->email .'"';
+		  if ($this->imageUrl) $out .= 'data-image="'. $this->imageUrl .'"';
+		  if ($this->customer->email) $out .= 'data-email="'. $this->customer->email .'"';
 
-	  $out .= '>
-	  </script>
-	  </form>';
+		$out .= '></script></form>';
+
 		return $out;
 	}
 
 	public static function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 
-    $field = wire('modules')->get('InputfieldText');
-    $field->name = 'seller';
-    $field->label = __("Seller name");
-    $field->notes = __("Company or seller of the goods - this is shown on stripe payment form");
-    if(isset($data['seller'])) $field->value = $data['seller'];
-    $inputfields->add($field);
+	    $field = wire('modules')->get('InputfieldText');
+	    $field->name = 'seller';
+	    $field->label = __("Seller name");
+	    $field->notes = __("Company or seller of the goods - this is shown on stripe payment form");
+	    if(isset($data['seller'])) $field->value = $data['seller'];
+	    $inputfields->add($field);
 
-    $field = wire('modules')->get('InputfieldText');
-    $field->name = 'defaultCurrency';
-    $field->label = __("Default currency");
-    $field->notes = __("Use this currency by default (always possible to overwrite when using this module from API)");
-    if(isset($data['defaultCurrency'])) $field->value = $data['defaultCurrency'];
-    $inputfields->add($field);
+	    $field = wire('modules')->get('InputfieldText');
+	    $field->name = 'defaultCurrency';
+	    $field->label = __("Default currency");
+	    $field->notes = __("Use this currency by default (always possible to overwrite when using this module from API)");
+	    if(isset($data['defaultCurrency'])) $field->value = $data['defaultCurrency'];
+	    $inputfields->add($field);
 
-    $field = wire('modules')->get('InputfieldText');
-    $field->name = 'secretKey';
-    $field->label = __("Secret key");
-    $field->notes = __("Your secret key: remember to change this to your live secret key in production. See your keys [here](https://dashboard.stripe.com/account)");
-    if(isset($data['secretKey'])) $field->value = $data['secretKey'];
-    $inputfields->add($field);
+	    $field = wire('modules')->get('InputfieldText');
+	    $field->name = 'secretKey';
+	    $field->label = __("Secret key");
+	    $field->notes = __("Your secret key: remember to change this to your live secret key in production. See your keys [here](https://dashboard.stripe.com/account)");
+	    if(isset($data['secretKey'])) $field->value = $data['secretKey'];
+	    $inputfields->add($field);
 
-    $field = wire('modules')->get('InputfieldText');
-    $field->name = 'publicKey';
-    $field->label = __("Public key");
-    $field->notes = __("Your public key: remember to change this to your live public key in production. See your keys [here](https://dashboard.stripe.com/account)");
-    if(isset($data['publicKey'])) $field->value = $data['publicKey'];
-    $inputfields->add($field);
+	    $field = wire('modules')->get('InputfieldText');
+	    $field->name = 'publicKey';
+	    $field->label = __("Public key");
+	    $field->notes = __("Your public key: remember to change this to your live public key in production. See your keys [here](https://dashboard.stripe.com/account)");
+	    if(isset($data['publicKey'])) $field->value = $data['publicKey'];
+	    $inputfields->add($field);
 
-    $field = wire('modules')->get('InputfieldText');
-    $field->name = 'imageUrl';
-    $field->label = __("Url to logo");
-    $field->notes = __("Company logo or other image to show in Stripe payment form. Relative url from root, like /site/templates/images/logo.gif");
-    if(isset($data['imageUrl'])) $field->value = $data['imageUrl'];
-    $inputfields->add($field);
+	    $field = wire('modules')->get('InputfieldText');
+	    $field->name = 'imageUrl';
+	    $field->label = __("Url to logo");
+	    $field->notes = __("Company logo or other image to show in Stripe payment form. Relative url from root, like /site/templates/images/logo.gif");
+	    if(isset($data['imageUrl'])) $field->value = $data['imageUrl'];
+	    $inputfields->add($field);
+
+		$field = wire('modules')->get('InputfieldCheckbox');
+	    $field->name = 'captureCheckbox';
+	    $field->label = __("Capture payment or defer - check to defer");
+	    $field->notes = __("If unchecked (default) capture payment, if checked then defer payment (will have to be captured on Stripe account or via API)");
+	    if(isset($data['captureCheckbox'])) {
+			$field->value = $data['captureCheckbox'];
+			$field->attr('checked', $data['captureCheckbox'] === 1 ? 'checked' : '' );
+		}
+		$inputfields->add($field);
 
 		return $inputfields;
 	}
